@@ -1,0 +1,26 @@
+[package]
+name = "wifitui"
+version = "0.1.0"
+description = "A Kix wifi tui"
+authors = ["Kix"]
+edition = "2024"
+
+[dependencies]
+# UI and Terminal
+ratatui = "0.30.0"
+crossterm = "0.29.0"
+color-eyre = "0.6.5"
+
+# Async
+tokio = { version = "1.49.0", feature = ["full"]}
+tokio-util_wasi = "0.7.5"
+
+[profile.release]
+#best opti but long time compilation
+codegen-units = 1
+#Opti all crate
+lto = true
+#opti size == perf
+opt-level = "s"
+#Remove some debug help
+strip = true
