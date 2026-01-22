@@ -1,113 +1,48 @@
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    style::Stylize,
-    symbols::border,
-    text::{Line, Text},
-    widgets::{Block, Paragraph, Widget},
-    DefaultTerminal, Frame,
-};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
-
-use color_eyre::{
-    eyre::{bail, WrapErr},
-    Result,
-};
+use std::error::Error;
+use ratatui::prelude::{CrosstermBackend, Terminal, Backend};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, EnableMouseCapture, DisableMouseCapture};
+use ratatui::crossterm::execute;
+use ratatui::crossterm::terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
+use std::io;
 
 #[cfg(test)]
 pub mod test;
 
+pub mod app;
 
-#[derive(Debug, Default)]
-pub struct App {
-    counter: u8,
-    exit: bool,
-}
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut app::App) -> io::Result<bool>{
+    loop{
+        // cette fonciton sert a update lui en fonction de ce quil ce passe 
+        // pas encore creeer ui 
+        // terminal.draw(|f| ui(f,app))?;
 
-
-impl App{
-    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
-        while !self.exit {
-            terminal.draw(|frame| self.draw(frame))?;
-            self.handle_events().wrap_err("handle events failed")?;
-        }
-        Ok(())
-    }
-
-    fn draw (&self, frame: &mut Frame){
-        frame.render_widget(self, frame.area());
-    }
-
-    fn exit(&mut self) {
-        self.exit = true;
-    }
-
-    fn increment_counter(&mut self) -> Result<()> {
-        self.counter += 1;
-        Ok(())
-    }
-
-    fn decrement_counter(&mut self) -> Result<()> {
-        if self.counter == 0 {
-            bail!("Cant go past 0");
-        }else {
-            self.counter -= 1;
-        }
-        Ok(())
-    }
-
-    fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()>{
-        match key_event.code {
-            KeyCode::Char('q') => self.exit(),
-            //change later
-            KeyCode::Left => self.decrement_counter()?,
-            KeyCode::Right => self.increment_counter()?,
-            _ => {}
-        }
-        Ok(())
-    }
-
-    fn handle_events(&mut self) -> Result<()>{
-        match event::read()? {
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => self
-                .handle_key_event(key_event)
-                .wrap_err_with(|| format!("Erreur handling key event:\n{key_event:#?}")),
-            _ => Ok(())
+        if let Event::Key(key) = event::read()? {
+            dbg!(key.code)
         }
     }
+
 }
 
-impl Widget for &App {
-    fn render (self, area: Rect, buf: &mut Buffer){
-        let title = Line::from(" WifiTui ".bold());
-        let instructions = Line::from(vec![
-            " Decrement ".into(),
-            "<Left>".blue().bold(),
-            " Increment ".into(),
-            "<Right>".blue().bold(),
-            " Quit ".into(),
-            "<Q> ".blue().bold(),
+fn main() -> Result<(), Box<dyn Error>> {
+    // setup terminal
+    enable_raw_mode()?;
+    let mut stderr = io::stderr(); // This is a special case. Normally using stdout is fine
+    execute!(stderr, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stderr);
+    let mut terminal = Terminal::new(backend)?;
 
-        ]);
-        let block = Block::bordered()
-            .title(title.centered())
-            .title_bottom(instructions.centered())
-            .border_set(border::THICK);
-        let counter_text = Text::from(vec![Line::from(vec![
-            "Value: ".into(),
-            self.counter.to_string().yellow(),
-        ])]);
+    // create app and run it
+    let mut app = app::App::new();
+    let res = run_app(&mut terminal, &mut app);
 
-        Paragraph::new(counter_text)
-            .centered()
-            .block(block)
-            .render(area, buf);
-    }
+    // restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    Ok(())
 }
-
-fn main() -> Result<()> {
-    ratatui::run(|terminal| App::default().run(terminal))
-}
-
-
-
