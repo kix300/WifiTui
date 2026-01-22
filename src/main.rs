@@ -32,11 +32,22 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut app::App) -> io::Re
                     }
                     _ => {}
                 },
+                CurrentScreen::Exiting => match key.code {
+                    KeyCode::Char('y') => {
+                        return Ok(true);
+                    }
+                    KeyCode::Char('n') | KeyCode::Char('q') => {
+                        return Ok(false);
+                    }
+                    _ => {}
+                },
+                CurrentScreen::Wifi => match key.code {
+                },
             }
         }
     }
-
 }
+
 
 fn main() -> Result<(), Box<dyn Error>> {
     // setup terminal

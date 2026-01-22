@@ -4,6 +4,7 @@ pub enum CurrentScreen {
     Main,
     Wifi,
     Info,
+    Exiting,
 }
 
 pub enum CurrentKey {
