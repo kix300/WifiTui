@@ -5,6 +5,8 @@ use ratatui::crossterm::execute;
 use ratatui::crossterm::terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use std::io;
 
+use crate::app::CurrentScreen;
+
 #[cfg(test)]
 pub mod test;
 
@@ -17,7 +19,20 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut app::App) -> io::Re
         // terminal.draw(|f| ui(f,app))?;
 
         if let Event::Key(key) = event::read()? {
-            dbg!(key.code)
+            if key.kind == event::KeyEventKind::Release {
+                continue;
+            }
+            match app.current_screen {
+                CurrentScreen::Main => match key.code {
+                    KeyCode::Char('L') => {
+                        app.current_screen = CurrentScreen::Wifi;
+                    }
+                    KeyCode::Char('q') => {
+                        app.current_screen = CurrentScreen::Info;
+                    }
+                    _ => {}
+                },
+            }
         }
     }
 
